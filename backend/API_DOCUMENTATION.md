@@ -1,0 +1,254 @@
+# Student Performance Analytics API Documentation
+
+Generated on: 2026-04-28 23:09:10
+
+## Overview
+
+Complete API for student performance prediction and analytics
+
+**Version:** 1.0.0
+
+## Base URL
+
+```
+http://localhost:5000
+```
+
+## Authentication
+
+This API uses JWT Bearer token authentication. Include the token in the Authorization header:
+
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+## Demo Accounts
+
+| Role    | Email            | Password   |
+|---------|------------------|------------|
+| Student | student@demo.com | student123 |
+| Faculty | faculty@demo.com | faculty123 |
+| Admin   | admin@demo.com   | admin123   |
+
+## Endpoints
+
+### Authentication
+
+#### POST /api/auth/register
+Register a new user account.
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "full_name": "John Doe",
+  "role": "student"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "User registered successfully",
+  "data": {
+    "user": { ... },
+    "access_token": "jwt-token",
+    "refresh_token": "refresh-token"
+  }
+}
+```
+
+#### POST /api/auth/login
+Authenticate user and receive tokens.
+
+**Request Body:**
+```json
+{
+  "email": "student@demo.com",
+  "password": "student123"
+}
+```
+
+#### GET /api/auth/me
+Get current user information (requires authentication).
+
+### Student Endpoints
+
+#### GET /api/student/dashboard
+Get comprehensive dashboard data including performance metrics and AI predictions.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "student_info": { ... },
+    "performance_metrics": { ... },
+    "latest_prediction": { ... },
+    "prediction_history": [...]
+  }
+}
+```
+
+#### POST /api/student/predict
+Generate AI-powered performance prediction.
+
+**Headers:** `Authorization: Bearer <token>`
+
+#### GET /api/student/performance
+Get detailed performance analytics and trends.
+
+#### GET /api/student/report/download
+Generate and download PDF performance report.
+
+### Faculty Endpoints
+
+#### GET /api/faculty/students
+Get paginated list of all students with filtering options.
+
+**Query Parameters:**
+- `page` (integer): Page number (default: 1)
+- `per_page` (integer): Items per page (default: 20)
+- `search` (string): Search by name or student ID
+- `result` (string): Filter by Pass/Fail
+
+#### PUT /api/faculty/student/:id/update
+Update student marks and information.
+
+#### POST /api/faculty/upload-dataset
+Upload CSV/Excel dataset for batch student data import.
+
+#### GET /api/faculty/analytics
+Get comprehensive analytics data for faculty dashboard.
+
+### Admin Endpoints
+
+#### GET /api/admin/users
+Get paginated list of all users with role filtering.
+
+#### PUT /api/admin/user/:id
+Update user information and roles.
+
+#### DELETE /api/admin/user/:id
+Deactivate user account (soft delete).
+
+#### POST /api/admin/train-model
+Trigger machine learning model training.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Model training completed successfully",
+  "data": {
+    "best_model": "random_forest",
+    "best_f1_score": 0.95,
+    "models_trained": ["logistic_regression", "random_forest", "xgboost"],
+    "training_date": "2026-04-28T23:00:00",
+    "dataset_size": 1200,
+    "feature_count": 18
+  }
+}
+```
+
+#### GET /api/admin/system-insights
+Get comprehensive system insights and statistics.
+
+## Error Responses
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "success": false,
+  "message": "Error description",
+  "error": "detailed_error_code"
+}
+```
+
+### Common HTTP Status Codes
+
+- `200` - Success
+- `201` - Created
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `409` - Conflict
+- `500` - Internal Server Error
+- `503` - Service Unavailable
+
+## Rate Limiting
+
+Currently no rate limiting is implemented, but it's recommended for production use.
+
+## Data Models
+
+### User
+```json
+{
+  "id": 1,
+  "email": "student@demo.com",
+  "role": "student",
+  "full_name": "John Doe",
+  "is_active": true,
+  "created_at": "2026-04-28T10:00:00",
+  "updated_at": "2026-04-28T10:00:00"
+}
+```
+
+### Student Record
+```json
+{
+  "id": 1,
+  "student_id": "STU001",
+  "student_name": "Alice Johnson",
+  "gender": "Female",
+  "age": 20,
+  "study_hours": 30,
+  "attendance_percentage": 85,
+  "internal_marks": 80,
+  "assignment_score": 85,
+  "previous_sem_marks": 78,
+  "class_participation": "Yes",
+  "extracurricular_activity": "Yes",
+  "final_exam_marks": 82,
+  "result": "Pass"
+}
+```
+
+### Prediction Result
+```json
+{
+  "prediction": "Pass",
+  "probability": 0.85,
+  "class_probabilities": {
+    "Pass": 0.85,
+    "Fail": 0.15
+  },
+  "risk_level": "Low",
+  "feedback": "Great performance! Keep up the good work.",
+  "model_used": "random_forest",
+  "prediction_date": "2026-04-28T23:00:00"
+}
+```
+
+## Testing
+
+Use the provided test suite to verify API functionality:
+
+```bash
+python tests/test_api_routes.py
+```
+
+## Support
+
+For API support and questions, please contact the development team.
+
+---
+
+**Generated by Student Performance Analytics API Documentation Generator**
