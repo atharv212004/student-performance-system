@@ -12,8 +12,8 @@ def student_required(f):
     @wraps(f)
     @jwt_required()
     def decorated_function(*args, **kwargs):
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
+        user_id = int(get_jwt_identity())
+        user = User.query.get(int(user_id))
         
         if not user or user.role != 'student':
             return jsonify({
@@ -29,7 +29,7 @@ def student_required(f):
 def get_dashboard():
     """Get student dashboard data with prediction"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Get student record
         student_record = StudentRecord.query.filter_by(user_id=user_id).first()
@@ -83,7 +83,7 @@ def get_dashboard():
 def predict_performance():
     """Get AI prediction for student performance"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Get student record
         student_record = StudentRecord.query.filter_by(user_id=user_id).first()
@@ -153,7 +153,7 @@ def predict_performance():
 def get_performance_data():
     """Get detailed performance analytics"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Get student record
         student_record = StudentRecord.query.filter_by(user_id=user_id).first()
@@ -215,7 +215,7 @@ def get_performance_data():
 def download_report():
     """Generate and download PDF report"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Get student record
         student_record = StudentRecord.query.filter_by(user_id=user_id).first()
@@ -285,7 +285,7 @@ def download_report():
 def get_prediction_history():
     """Get student's prediction history"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Get pagination parameters
         page = request.args.get('page', 1, type=int)
@@ -325,7 +325,7 @@ def get_prediction_history():
 def download_report_file(filename):
     """Serve PDF report file for download"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Security check - ensure user can only access their own reports
         # Extract student ID from filename if possible
@@ -359,3 +359,164 @@ def download_report_file(filename):
             'message': 'Failed to download report',
             'error': str(e)
         }), 500
+
+@student_bp.route('/progress/track', methods=['GET'])
+@student_required
+def track_progress():
+    """Track academic progress and milestones"""
+    try:
+        user_id = int(get_jwt_identity())
+        
+        student_record = StudentRecord.query.filter_by(user_id=user_id).first()
+        
+        if not student_record:
+            return jsonify({
+                'success': False,
+                'message': 'Student record not found'
+            }), 404
+        
+        # Calculate progress metrics
+        average_score = (
+            student_record.internal_marks + 
+            student_record.assignment_score + 
+            student_record.final_exam_marks
+        ) / 3
+        
+        progress_data = {
+            'attendance_progress': {
+                'current': student_record.attendance_percentage,
+                'target': 75,
+                'status': 'On Track' if student_record.attendance_percentage >= 75 else 'At Risk'
+            },
+            'academic_performance': {
+                'current': round(average_score, 2),
+                'target': 70,
+                'status': 'Excellent' if average_score >= 80 else 'Good' if average_score >= 70 else 'Needs Improvement'
+            },
+            'study_commitment': {
+                'current': student_record.study_hours,
+                'target': 30,
+                'status': 'Adequate' if student_record.study_hours >= 30 else 'Insufficient'
+            },
+            'participation': {
+                'class_participation': student_record.class_participation,
+                'extracurricular': student_record.extracurricular_activity
+            }
+        }
+        
+        # Get milestones
+        milestones = []
+        if student_record.attendance_percentage >= 75:
+            milestones.append({'name': 'Good Attendance', 'achieved': True})
+        if average_score >= 70:
+            milestones.append({'name': 'Passing Grade', 'achieved': True})
+        if student_record.study_hours >= 30:
+            milestones.append({'name': 'Adequate Study', 'achieved': True})
+        if student_record.class_participation == 'Yes':
+            milestones.append({'name': 'Class Participation', 'achieved': True})
+        if student_record.extracurricular_activity == 'Yes':
+            milestones.append({'name': 'Extracurricular Involvement', 'achieved': True})
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'progress_metrics': progress_data,
+                'milestones': milestones,
+                'overall_progress': round((
+                    (student_record.attendance_percentage / 100) +
+                    (average_score / 100) +
+                    (student_record.study_hours / 50)
+                ) / 3 * 100, 2)
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': 'Failed to track progress',
+            'error': str(e)
+        }), 500
+
+@student_bp.route('/analytics/academic', methods=['GET'])
+@student_required
+def get_academic_analytics():
+    """Get comprehensive academic analytics"""
+    try:
+        user_id = int(get_jwt_identity())
+        
+        student_record = StudentRecord.query.filter_by(user_id=user_id).first()
+        
+        if not student_record:
+            return jsonify({
+                'success': False,
+                'message': 'Student record not found'
+            }), 404
+        
+        # Get all predictions for trend analysis
+        predictions = PredictionLog.query.filter_by(user_id=user_id).all()
+        
+        analytics_data = {
+            'scores_breakdown': {
+                'internal_marks': student_record.internal_marks,
+                'assignment_score': student_record.assignment_score,
+                'final_exam_marks': student_record.final_exam_marks,
+                'previous_semester': student_record.previous_sem_marks
+            },
+            'student_profile': {
+                'age': student_record.age,
+                'gender': student_record.gender,
+                'study_hours_weekly': student_record.study_hours,
+                'attendance_percentage': student_record.attendance_percentage
+            },
+            'prediction_insights': {
+                'total_predictions': len(predictions),
+                'pass_predictions': sum(1 for p in predictions if p.prediction_result == 'Pass'),
+                'fail_predictions': sum(1 for p in predictions if p.prediction_result == 'Fail'),
+                'average_confidence': round(
+                    sum(p.prediction_probability for p in predictions) / len(predictions), 2
+                ) if predictions else 0
+            },
+            'recommendations': get_student_recommendations(student_record)
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': analytics_data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': 'Failed to get academic analytics',
+            'error': str(e)
+        }), 500
+
+def get_student_recommendations(student_record):
+    """Generate recommendations based on student performance"""
+    recommendations = []
+    
+    if student_record.attendance_percentage < 75:
+        recommendations.append('Improve class attendance to at least 75%')
+    
+    if student_record.study_hours < 30:
+        recommendations.append('Increase study hours to at least 30 hours per week')
+    
+    average_marks = (
+        student_record.internal_marks + 
+        student_record.assignment_score + 
+        student_record.final_exam_marks
+    ) / 3
+    
+    if average_marks < 70:
+        recommendations.append('Focus on improving exam performance')
+    
+    if student_record.class_participation == 'No':
+        recommendations.append('Increase participation in class activities')
+    
+    if student_record.extracurricular_activity == 'No':
+        recommendations.append('Consider joining extracurricular activities for holistic development')
+    
+    if not recommendations:
+        recommendations.append('Keep up the excellent work!')
+    
+    return recommendations

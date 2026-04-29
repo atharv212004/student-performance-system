@@ -10,10 +10,13 @@ class User(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    username = db.Column(db.String(120), unique=True, nullable=True, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='student')  # student, faculty, admin
     full_name = db.Column(db.String(100), nullable=False)
+    student_id = db.Column(db.String(20), unique=True, nullable=True, index=True)  # For students
     is_active = db.Column(db.Boolean, default=True)
+    is_verified = db.Column(db.Boolean, default=False)  # For faculty verification by admin
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -34,9 +37,12 @@ class User(db.Model):
         return {
             'id': self.id,
             'email': self.email,
+            'username': self.username,
             'role': self.role,
             'full_name': self.full_name,
+            'student_id': self.student_id,
             'is_active': self.is_active,
+            'is_verified': self.is_verified,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -148,38 +154,113 @@ class PredictionLog(db.Model):
     def __repr__(self):
         return f'<PredictionLog {self.id} - {self.prediction_result}>'
 
+class PasswordReset(db.Model):
+    __tablename__ = 'password_resets'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    token = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    is_used = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    
+    user = db.relationship('User', backref='password_resets')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'is_used': self.is_used,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None
+        }
+
+class StudentReport(db.Model):
+    __tablename__ = 'student_reports'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    student_record_id = db.Column(db.Integer, db.ForeignKey('student_records.id'), nullable=False)
+    report_type = db.Column(db.String(50), nullable=False)  # academic, performance, prediction, comprehensive
+    file_path = db.Column(db.String(500), nullable=False)
+    file_name = db.Column(db.String(255), nullable=False)
+    report_data = db.Column(db.Text, nullable=True)  # JSON string
+    generated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    downloaded_at = db.Column(db.DateTime, nullable=True)
+    download_count = db.Column(db.Integer, default=0)
+    
+    user = db.relationship('User', backref='reports')
+    student_record = db.relationship('StudentRecord', backref='reports')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'student_record_id': self.student_record_id,
+            'report_type': self.report_type,
+            'file_name': self.file_name,
+            'generated_at': self.generated_at.isoformat() if self.generated_at else None,
+            'downloaded_at': self.downloaded_at.isoformat() if self.downloaded_at else None,
+            'download_count': self.download_count
+        }
+
 # Database initialization function
 def init_db(app):
     """Initialize database with app context"""
     db.init_app(app)
     
     with app.app_context():
-        # Create all tables
-        db.create_all()
-        
-        # Create default users if they don't exist
-        create_default_users()
+        try:
+            # Create all tables
+            db.create_all()
+            # Create default users if they don't exist
+            create_default_users()
+        except Exception as e:
+            print(f"⚠️ Error during initial DB creation: {e}")
+            print("🔄 Attempting to drop and recreate all tables...")
+            try:
+                # Drop all tables and recreate
+                db.drop_all()
+                db.create_all()
+                # Create default users
+                create_default_users()
+                print("✅ Database recreated successfully")
+            except Exception as e2:
+                print(f"❌ Failed to recreate database: {e2}")
+                raise
 
 def create_default_users():
     """Create default demo users"""
     default_users = [
         {
-            'email': 'admin@demo.com',
-            'password': 'admin123',
+            'email': 'atharv@admin.io',
+            'username': 'Atharv Pai',
+            'password': '123456',
             'role': 'admin',
-            'full_name': 'Admin User'
+            'full_name': 'Atharv Pai'
         },
         {
             'email': 'faculty@demo.com',
             'password': 'faculty123',
             'role': 'faculty',
-            'full_name': 'Faculty User'
+            'full_name': 'Faculty User',
+            'is_verified': True
         },
         {
-            'email': 'student@demo.com',
-            'password': 'student123',
+            'email': 'john@student.io',
+            'username': 'John - STU001',
+            'password': 'john@student.io',
             'role': 'student',
-            'full_name': 'Student User'
+            'full_name': 'John',
+            'student_id': 'STU001'
+        },
+        {
+            'email': 'sarah@student.io',
+            'username': 'Sarah - STU002',
+            'password': 'sarah@student.io',
+            'role': 'student',
+            'full_name': 'Sarah',
+            'student_id': 'STU002'
         }
     ]
     
@@ -188,8 +269,11 @@ def create_default_users():
         if not existing_user:
             user = User(
                 email=user_data['email'],
+                username=user_data.get('username'),
                 role=user_data['role'],
-                full_name=user_data['full_name']
+                full_name=user_data['full_name'],
+                student_id=user_data.get('student_id'),
+                is_verified=user_data.get('is_verified', False)
             )
             user.set_password(user_data['password'])
             db.session.add(user)

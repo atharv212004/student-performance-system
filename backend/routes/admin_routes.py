@@ -11,8 +11,8 @@ def admin_required(f):
     @wraps(f)
     @jwt_required()
     def decorated_function(*args, **kwargs):
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
+        user_id = int(get_jwt_identity())
+        user = User.query.get(int(user_id))
         
         if not user or user.role != 'admin':
             return jsonify({
@@ -104,7 +104,7 @@ def update_user(user_id):
             }), 404
         
         # Prevent admin from deactivating themselves
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
         if user_id == current_user_id and 'is_active' in data and not data['is_active']:
             return jsonify({
                 'success': False,
@@ -177,7 +177,7 @@ def delete_user(user_id):
             }), 404
         
         # Prevent admin from deleting themselves
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
         if user_id == current_user_id:
             return jsonify({
                 'success': False,

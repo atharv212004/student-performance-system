@@ -25,6 +25,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           { name: 'Dashboard', href: '/student/dashboard', icon: LayoutDashboard },
           { name: 'Performance', href: '/student/performance', icon: BarChart3 },
           { name: 'AI Predictions', href: '/student/predictions', icon: Brain },
+          { name: 'Reports', href: '/student/reports', icon: FileText },
         ];
       
       case 'faculty':

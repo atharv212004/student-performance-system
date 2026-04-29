@@ -11,6 +11,7 @@ import RegisterPage from './pages/RegisterPage';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentPerformance from './pages/student/StudentPerformance';
 import StudentPredictions from './pages/student/StudentPredictions';
+import StudentReports from './pages/student/StudentReports';
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import FacultyStudents from './pages/faculty/FacultyStudents';
 import FacultyAnalytics from './pages/faculty/FacultyAnalytics';
@@ -56,6 +57,11 @@ function App() {
             <Route path="student/predictions" element={
               <ProtectedRoute requiredRole="student">
                 <StudentPredictions />
+              </ProtectedRoute>
+            } />
+            <Route path="student/reports" element={
+              <ProtectedRoute requiredRole="student">
+                <StudentReports />
               </ProtectedRoute>
             } />
             

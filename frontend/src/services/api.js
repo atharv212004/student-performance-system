@@ -66,7 +66,7 @@ api.interceptors.response.use(
       const refreshToken = tokenManager.getRefreshToken();
       if (refreshToken) {
         try {
-          const response = await axios.post('/api/auth/refresh', {}, {
+          const response = await api.post('/auth/refresh', {}, {
             headers: { Authorization: `Bearer ${refreshToken}` }
           });
           
@@ -167,6 +167,16 @@ export const studentAPI = {
 
   downloadReport: async () => {
     const response = await api.get('/student/report/download');
+    return response.data.data;
+  },
+
+  trackProgress: async () => {
+    const response = await api.get('/student/progress/track');
+    return response.data.data;
+  },
+
+  getAcademicAnalytics: async () => {
+    const response = await api.get('/student/analytics/academic');
     return response.data.data;
   }
 };
